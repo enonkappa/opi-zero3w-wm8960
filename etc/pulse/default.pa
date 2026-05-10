@@ -1,0 +1,78 @@
+#!/usr/bin/pulseaudio -nF
+#
+# This file is part of PulseAudio.
+#
+# PulseAudio is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# PulseAudio is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with PulseAudio; if not, see <http://www.gnu.org/licenses/>.
+
+.fail
+
+load-module module-device-restore
+load-module module-stream-restore
+load-module module-card-restore
+load-module module-augment-properties
+load-module module-switch-on-port-available
+
+# udev-detect disabled: BSP platform cards fail module-alsa-card; sinks loaded manually below
+# load-module module-udev-detect
+
+.ifexists module-jackdbus-detect.so
+.nofail
+load-module module-jackdbus-detect channels=2
+.fail
+.endif
+
+.ifexists module-bluetooth-policy.so
+load-module module-bluetooth-policy
+.endif
+
+.ifexists module-bluetooth-discover.so
+load-module module-bluetooth-discover
+.endif
+
+.ifexists module-esound-protocol-unix.so
+load-module module-esound-protocol-unix
+.endif
+load-module module-native-protocol-unix
+
+.ifexists module-gsettings.so
+.nofail
+load-module module-gsettings
+.fail
+.endif
+
+load-module module-default-device-restore
+load-module module-always-sink
+load-module module-intended-roles
+load-module module-suspend-on-idle
+
+.ifexists module-systemd-login.so
+load-module module-systemd-login
+.endif
+
+load-module module-position-event-sounds
+load-module module-role-cork
+load-module module-filter-heuristics
+load-module module-filter-apply
+
+.nofail
+.include /etc/pulse/default.pa.d
+
+.nofail
+### Hardware sinks/sources — loaded manually (udev-detect uses module-alsa-card which needs UCM).
+load-module module-alsa-sink device=hw:sndwm8960,0 sink_name=wm8960-speaker format=s32le rate=48000 channels=2 tsched=0 sink_properties="device.description='WM8960 Audio HAT'"
+load-module module-alsa-sink device=hw:allwinnerhdmi,0 sink_name=HDMI-Playback format=s16le rate=44100 channels=2 tsched=0 sink_properties="device.description='HDMI Audio'"
+load-module module-alsa-source device=hw:H2,0 source_name=hyperx_solocast rate=16000 channels=1 tsched=0 source_properties="device.description='HyperX SoloCast 2'"
+set-default-sink wm8960-speaker
+set-default-source hyperx_solocast
+.fail
