@@ -1,0 +1,7 @@
+verbosity=1
+bootlogo=true
+overlay_prefix=sun60i-a733
+fdtfile=allwinner/sun60i-a733-orangepi-zero3w.dtb
+rootdev=UUID=f9ba43be-5030-42f2-8505-b6205305a632
+rootfstype=ext4
+overlays=i2c0 wm8960 spi3-cs0-cs1-spidev
