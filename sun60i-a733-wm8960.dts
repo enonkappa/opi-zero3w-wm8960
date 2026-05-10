@@ -1,0 +1,102 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	/* Fixed regulators needed by WM8960 */
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			vdd_3v3: regulator-3v3 {
+				compatible = "regulator-fixed";
+				regulator-name = "vdd-3v3";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-always-on;
+			};
+
+			vdd_5v0: regulator-5v0 {
+				compatible = "regulator-fixed";
+				regulator-name = "vdd-5v0";
+				regulator-min-microvolt = <5000000>;
+				regulator-max-microvolt = <5000000>;
+				regulator-always-on;
+			};
+		};
+	};
+
+	/* WM8960 on TWI0 / I2C-0 */
+	fragment@1 {
+		target = <&twi0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			wm8960: wm8960@1a {
+				compatible = "wlf,wm8960";
+				reg = <0x1a>;
+				#sound-dai-cells = <0>;
+				DCVDD-supply  = <&vdd_3v3>;
+				DBVDD-supply  = <&vdd_3v3>;
+				AVDD-supply   = <&vdd_3v3>;
+				SPKVDD1-supply = <&vdd_5v0>;
+				SPKVDD2-supply = <&vdd_5v0>;
+			};
+		};
+	};
+
+	/* Enable I2S0 platform */
+	fragment@2 {
+		target = <&i2s0_plat>;
+		__overlay__ { status = "okay"; };
+	};
+
+	/* Reconfigure i2s0_mach for WM8960 */
+	fragment@3 {
+		target = <&i2s0_mach>;
+		__overlay__ {
+			status = "okay";
+			soundcard-mach,name = "snd-wm8960";
+			soundcard-mach,format = "i2s";
+			soundcard-mach,slot-num = <2>;
+			soundcard-mach,slot-width = <32>;
+			/* Disable jack detection (base DTB has jack-support=4 for ac101) */
+			soundcard-mach,jack-support = <0>;
+			/* Allwinner I2S0 is clock master */
+			soundcard-mach,frame-master    = <&i2s0_cpu>;
+			soundcard-mach,bitclock-master = <&i2s0_cpu>;
+			soundcard-mach,widgets =
+				"Headphone", "Headphone Jack",
+				"Speaker",   "Speaker",
+				"Microphone","Mic Jack";
+			soundcard-mach,routing =
+				"Headphone Jack", "HP_L",
+				"Headphone Jack", "HP_R",
+				"Speaker",        "SPK_LP",
+				"Speaker",        "SPK_LN",
+				"LINPUT1",        "Mic Jack",
+				"RINPUT1",        "Mic Jack";
+		};
+	};
+
+	/* CPU subnode: PLL and MCLK clock config
+	 * cpu_pll_clk = freq_point(24576000) * pll-fs(1) = 24.576 MHz
+	 * mclk = mclk-fp[1](12288000) * mclk-fs(2) = 24.576 MHz
+	 */
+	fragment@4 {
+		target = <&i2s0_cpu>;
+		__overlay__ {
+			soundcard-mach,pll-fs  = <1>;
+			soundcard-mach,mclk-fs = <2>;
+			soundcard-mach,mclk-fp = <11289600 12288000>;
+		};
+	};
+
+	/* Redirect codec to WM8960 */
+	fragment@5 {
+		target = <&i2s0_codec>;
+		__overlay__ {
+			sound-dai = <&wm8960>;
+		};
+	};
+};
